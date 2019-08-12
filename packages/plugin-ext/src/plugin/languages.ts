@@ -44,7 +44,7 @@ import {
     Hover,
     DocumentHighlight,
     Range,
-    SingleEditOperation,
+    TextEdit,
     FormattingOptions,
     Definition,
     DefinitionLink,
@@ -337,7 +337,7 @@ export class LanguagesExtImpl implements LanguagesExt {
     }
 
     $provideDocumentFormattingEdits(handle: number, resource: UriComponents,
-        options: FormattingOptions, token: theia.CancellationToken): Promise<SingleEditOperation[] | undefined> {
+        options: FormattingOptions, token: theia.CancellationToken): Promise<TextEdit[] | undefined> {
         return this.withAdapter(handle, DocumentFormattingAdapter, adapter => adapter.provideDocumentFormattingEdits(URI.revive(resource), options, token));
     }
     // ### Document Formatting Edit end
@@ -350,7 +350,7 @@ export class LanguagesExtImpl implements LanguagesExt {
     }
 
     $provideDocumentRangeFormattingEdits(handle: number, resource: UriComponents, range: Range,
-        options: FormattingOptions, token: theia.CancellationToken): Promise<SingleEditOperation[] | undefined> {
+        options: FormattingOptions, token: theia.CancellationToken): Promise<TextEdit[] | undefined> {
         return this.withAdapter(handle, RangeFormattingAdapter, adapter => adapter.provideDocumentRangeFormattingEdits(URI.revive(resource), range, options, token));
     }
     // ### Document Range Formatting Edit end
@@ -367,7 +367,7 @@ export class LanguagesExtImpl implements LanguagesExt {
     }
 
     $provideOnTypeFormattingEdits(handle: number, resource: UriComponents, position: Position, ch: string,
-        options: FormattingOptions, token: theia.CancellationToken): Promise<SingleEditOperation[] | undefined> {
+        options: FormattingOptions, token: theia.CancellationToken): Promise<TextEdit[] | undefined> {
         return this.withAdapter(handle, OnTypeFormattingAdapter, adapter => adapter.provideOnTypeFormattingEdits(URI.revive(resource), position, ch, options, token));
     }
     // ### On Type Formatting Edit end

@@ -35,7 +35,7 @@ import {
     ResourceFileEditDto,
 } from '../../common/plugin-api-rpc';
 import { interfaces } from 'inversify';
-import { SerializedDocumentFilter, MarkerData, Range, WorkspaceSymbolProvider, RelatedInformation, MarkerSeverity } from '../../common/plugin-api-rpc-model';
+import { SerializedDocumentFilter, MarkerData, Range, WorkspaceSymbolProvider, RelatedInformation, MarkerSeverity, DocumentLink } from '../../common/plugin-api-rpc-model';
 import { RPCProtocol } from '../../common/rpc-protocol';
 import { fromLanguageSelector } from '../../plugin/type-converters';
 import { LanguageSelector } from '../../plugin/languages';
@@ -99,12 +99,12 @@ export class LanguagesMainImpl implements LanguagesMain {
     }
 
     $registerCompletionSupport(handle: number, selector: SerializedDocumentFilter[], triggerCharacters: string[], supportsResolveDetails: boolean): void {
-        this.disposables.set(handle, monaco.modes.SuggestRegistry.register(fromLanguageSelector(selector)!, {
+        this.disposables.set(handle, monaco.modes.CompletionProviderRegistry.register(fromLanguageSelector(selector)!, {
             triggerCharacters,
             provideCompletionItems: (model: monaco.editor.ITextModel,
                 position: monaco.Position,
-                context: monaco.modes.SuggestContext,
-                token: monaco.CancellationToken): Thenable<monaco.modes.ISuggestResult> =>
+                context: monaco.languages.CompletionContext,
+                token: monaco.CancellationToken): Thenable<monaco.languages.CompletionList> =>
                 Promise.resolve(this.proxy.$provideCompletionItems(handle, model.uri, position, context, token)).then(result => {
                     if (!result) {
                         return undefined!;
@@ -221,7 +221,7 @@ export class LanguagesMainImpl implements LanguagesMain {
 
                     if (Array.isArray(result)) {
                         // using DefinitionLink because Location is mandatory part of DefinitionLink
-                        const definitionLinks: monaco.languages.DefinitionLink[] = [];
+                        const definitionLinks: monaco.languages.LocationLink[] = [];
                         for (const item of result) {
                             definitionLinks.push({ ...item, uri: monaco.Uri.revive(item.uri) });
                         }
@@ -263,7 +263,7 @@ export class LanguagesMainImpl implements LanguagesMain {
 
                     if (Array.isArray(result)) {
                         // using DefinitionLink because Location is mandatory part of DefinitionLink
-                        const definitionLinks: monaco.languages.DefinitionLink[] = [];
+                        const definitionLinks: monaco.languages.LocationLink[] = [];
                         for (const item of result) {
                             definitionLinks.push({ ...item, uri: monaco.Uri.revive(item.uri) });
                         }
@@ -373,14 +373,32 @@ export class LanguagesMainImpl implements LanguagesMain {
 
     protected createLinkProvider(handle: number, selector: LanguageSelector | undefined): monaco.languages.LinkProvider {
         return {
-            provideLinks: (model, token) => {
+            provideLinks: async (model, token) => {
                 if (!this.matchModel(selector, MonacoModelIdentifier.fromModel(model))) {
                     return undefined!;
                 }
-                return this.proxy.$provideDocumentLinks(handle, model.uri, token).then(v => v!);
+                const links = await this.proxy.$provideDocumentLinks(handle, model.uri, token);
+                if (!links) {
+                    return undefined;
+                }
+                return {
+                    links: links.map(link => this.toMonacoLink(link)),
+                    dispose: () => {
+                        // TODO this.proxy.$releaseDocumentLinks(handle, links.cacheId);
+                    }
+                };
             },
-            resolveLink: (link: monaco.languages.ILink, token) =>
-                this.proxy.$resolveDocumentLink(handle, link, token).then(v => v!)
+            resolveLink: async (link, token) => {
+                const resolved = await this.proxy.$resolveDocumentLink(handle, link, token);
+                return resolved && this.toMonacoLink(resolved);
+            }
+        };
+    }
+
+    protected toMonacoLink(link: DocumentLink): monaco.languages.ILink {
+        return {
+            ...link,
+            url: !!link.url && typeof link.url !== 'string' ? monaco.Uri.revive(link.url) : link.url
         };
     }
 
@@ -405,9 +423,18 @@ export class LanguagesMainImpl implements LanguagesMain {
 
     protected createCodeLensProvider(handle: number, selector: LanguageSelector | undefined): monaco.languages.CodeLensProvider {
         return {
-            provideCodeLenses: (model, token) =>
-                this.proxy.$provideCodeLenses(handle, model.uri, token).then(v => v!)
-            ,
+            provideCodeLenses: async (model, token) => {
+                if (!this.matchModel(selector, MonacoModelIdentifier.fromModel(model))) {
+                    return undefined!;
+                }
+                const lenses = await this.proxy.$provideCodeLenses(handle, model.uri, token);
+                return {
+                    lenses: lenses!,
+                    dispose: () => {
+                        // TODO this.proxy.$releaseCodeLenses
+                    }
+                };
+            },
             resolveCodeLens: (model, codeLens, token) =>
                 this.proxy.$resolveCodeLens(handle, model.uri, codeLens, token).then(v => v!)
         };
@@ -454,7 +481,7 @@ export class LanguagesMainImpl implements LanguagesMain {
 
                     if (Array.isArray(result)) {
                         // using DefinitionLink because Location is mandatory part of DefinitionLink
-                        const definitionLinks: monaco.languages.DefinitionLink[] = [];
+                        const definitionLinks: monaco.languages.LocationLink[] = [];
                         for (const item of result) {
                             definitionLinks.push({ ...item, uri: monaco.Uri.revive(item.uri) });
                         }
@@ -474,11 +501,17 @@ export class LanguagesMainImpl implements LanguagesMain {
     protected createSignatureHelpProvider(handle: number, selector: LanguageSelector | undefined, triggerCharacters: string[]): monaco.languages.SignatureHelpProvider {
         return {
             signatureHelpTriggerCharacters: triggerCharacters,
-            provideSignatureHelp: (model, position, token) => {
+            provideSignatureHelp: async (model, position, token) => {
                 if (!this.matchModel(selector, MonacoModelIdentifier.fromModel(model))) {
                     return undefined!;
                 }
-                return this.proxy.$provideSignatureHelp(handle, model.uri, position, token).then(v => v!);
+                const value = await this.proxy.$provideSignatureHelp(handle, model.uri, position, token);
+                return {
+                    value: value!,
+                    dispose: () => {
+                        // TDOO ?
+                    }
+                };
             }
         };
     }
@@ -642,11 +675,17 @@ export class LanguagesMainImpl implements LanguagesMain {
 
     protected createQuickFixProvider(handle: number, selector: LanguageSelector | undefined, providedCodeActionKinds?: string[]): monaco.languages.CodeActionProvider {
         return {
-            provideCodeActions: (model, rangeOrSelection, monacoContext, token) => {
+            provideCodeActions: async (model, rangeOrSelection, monacoContext, token) => {
                 if (!this.matchModel(selector, MonacoModelIdentifier.fromModel(model))) {
                     return undefined!;
                 }
-                return this.proxy.$provideCodeActions(handle, model.uri, rangeOrSelection, monacoContext, token);
+                const actions = await this.proxy.$provideCodeActions(handle, model.uri, rangeOrSelection, monacoContext, token);
+                return {
+                    actions,
+                    dispose: () => {
+                        // TODO this.proxy.$releaseCodeActions(handle, cacheId);
+                    }
+                };
             }
         };
     }

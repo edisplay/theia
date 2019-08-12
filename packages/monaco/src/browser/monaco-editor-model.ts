@@ -181,8 +181,9 @@ export class MonacoEditorModel implements ITextEditorModel, TextEditorDocument {
         return this.model;
     }
 
-    load(): monaco.Promise<MonacoEditorModel> {
-        return monaco.Promise.wrap(this.resolveModel).then(() => this);
+    async load(): Promise<MonacoEditorModel> {
+        await this.resolveModel;
+        return this;
     }
 
     save(): Promise<void> {

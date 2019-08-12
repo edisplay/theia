@@ -43,7 +43,6 @@ import {
     Hover,
     DocumentHighlight,
     FormattingOptions,
-    SingleEditOperation as ModelSingleEditOperation,
     Definition,
     DefinitionLink,
     DocumentLink,
@@ -1089,9 +1088,9 @@ export interface LanguagesExt {
     $provideHover(handle: number, resource: UriComponents, position: Position, token: CancellationToken): Promise<Hover | undefined>;
     $provideDocumentHighlights(handle: number, resource: UriComponents, position: Position, token: CancellationToken): Promise<DocumentHighlight[] | undefined>;
     $provideDocumentFormattingEdits(handle: number, resource: UriComponents,
-        options: FormattingOptions, token: CancellationToken): Promise<ModelSingleEditOperation[] | undefined>;
+        options: FormattingOptions, token: CancellationToken): Promise<TextEdit[] | undefined>;
     $provideDocumentRangeFormattingEdits(handle: number, resource: UriComponents, range: Range,
-        options: FormattingOptions, token: CancellationToken): Promise<ModelSingleEditOperation[] | undefined>;
+        options: FormattingOptions, token: CancellationToken): Promise<TextEdit[] | undefined>;
     $provideOnTypeFormattingEdits(
         handle: number,
         resource: UriComponents,
@@ -1099,7 +1098,7 @@ export interface LanguagesExt {
         ch: string,
         options: FormattingOptions,
         token: CancellationToken
-    ): Promise<ModelSingleEditOperation[] | undefined>;
+    ): Promise<TextEdit[] | undefined>;
     $provideDocumentLinks(handle: number, resource: UriComponents, token: CancellationToken): Promise<DocumentLink[] | undefined>;
     $resolveDocumentLink(handle: number, link: DocumentLink, token: CancellationToken): Promise<DocumentLink | undefined>;
     $provideCodeLenses(handle: number, resource: UriComponents, token: CancellationToken): Promise<CodeLensSymbol[] | undefined>;

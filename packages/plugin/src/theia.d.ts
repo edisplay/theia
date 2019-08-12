@@ -5650,6 +5650,13 @@ declare module '@theia/plugin' {
         commitCharacters?: string[];
 
         /**
+         * Keep whitespace of the [insertText](#CompletionItem.insertText) as is. By default, the editor adjusts leading
+         * whitespace of new lines so that they match the indentation of the line for which the item is accepted - setting
+         * this to `true` will prevent that.
+         */
+        keepWhitespace?: boolean;
+
+        /**
          * An optional array of additional [text edits](#TextEdit) that are applied when
          * selecting this completion. Edits must not overlap with the main [edit](#CompletionItem.textEdit)
          * nor with themselves.
@@ -8330,17 +8337,17 @@ declare module '@theia/plugin' {
 	/**
 	 * Comment mode of a [comment](#Comment)
 	 */
-	export enum CommentMode {
+    export enum CommentMode {
 		/**
-		 * Displays the comment editor
-		 */
-		Editing = 0,
+         * Displays the comment editor
+         */
+        Editing = 0,
 
 		/**
-		 * Displays the preview of the comment
-		 */
-		Preview = 1
-	}
+         * Displays the preview of the comment
+         */
+        Preview = 1
+    }
 
     /**
      * A collection of [comments](#Comment) representing a conversation at a particular range in a document.
@@ -8534,78 +8541,78 @@ declare module '@theia/plugin' {
 	/**
 	 * Author information of a [comment](#Comment)
 	 */
-	export interface CommentAuthorInformation {
+    export interface CommentAuthorInformation {
 		/**
-		 * The display name of the author of the comment
-		 */
-		name: string;
+         * The display name of the author of the comment
+         */
+        name: string;
 
 		/**
-		 * The optional icon path for the author
-		 */
-		iconPath?: Uri;
-	}
+         * The optional icon path for the author
+         */
+        iconPath?: Uri;
+    }
 
 	/**
 	 * Reactions of a [comment](#Comment)
 	 */
-	export interface CommentReaction {
+    export interface CommentReaction {
 		/**
-		 * The human-readable label for the reaction
-		 */
-		readonly label: string;
+         * The human-readable label for the reaction
+         */
+        readonly label: string;
 
 		/**
-		 * Icon for the reaction shown in UI.
-		 */
-		readonly iconPath: string | Uri;
+         * Icon for the reaction shown in UI.
+         */
+        readonly iconPath: string | Uri;
 
 		/**
-		 * The number of users who have reacted to this reaction
-		 */
-		readonly count: number;
+         * The number of users who have reacted to this reaction
+         */
+        readonly count: number;
 
 		/**
-		 * Whether the [author](CommentAuthorInformation) of the comment has reacted to this reaction
-		 */
-		readonly authorHasReacted: boolean;
-	}
+         * Whether the [author](CommentAuthorInformation) of the comment has reacted to this reaction
+         */
+        readonly authorHasReacted: boolean;
+    }
 
     /**
      * A comment is displayed within the editor or the Comments Panel, depending on how it is provided.
      */
     export interface Comment {
 		/**
-		 * The human-readable comment body
-		 */
+         * The human-readable comment body
+         */
         body: string | MarkdownString;
 
 		/**
-		 * [Comment mode](#CommentMode) of the comment
-		 */
+         * [Comment mode](#CommentMode) of the comment
+         */
         mode: CommentMode;
 
 		/**
-		 * The [author information](#CommentAuthorInformation) of the comment
-		 */
+         * The [author information](#CommentAuthorInformation) of the comment
+         */
         author: CommentAuthorInformation;
 
 		/**
-		 * Context value of the comment. This can be used to contribute comment specific actions.
-		 * For example, a comment is given a context value as `editable`. When contributing actions to `comments/comment/title`
-		 * using `menus` extension point, you can specify context value for key `comment` in `when` expression like `comment == editable`.
-		 */
+         * Context value of the comment. This can be used to contribute comment specific actions.
+         * For example, a comment is given a context value as `editable`. When contributing actions to `comments/comment/title`
+         * using `menus` extension point, you can specify context value for key `comment` in `when` expression like `comment == editable`.
+         */
         contextValue?: string;
 
 		/**
-		 * Optional reactions of the [comment](#Comment)
-		 */
+         * Optional reactions of the [comment](#Comment)
+         */
         reactions?: CommentReaction[];
 
 		/**
-		 * Optional label describing the [Comment](#Comment)
-		 * Label will be rendered next to authorName if exists.
-		 */
+         * Optional label describing the [Comment](#Comment)
+         * Label will be rendered next to authorName if exists.
+         */
         label?: string;
     }
 
