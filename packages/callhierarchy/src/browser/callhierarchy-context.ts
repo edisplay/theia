@@ -17,7 +17,7 @@
 import { ILanguageClient } from '@theia/languages/lib/browser';
 import {
     ReferencesRequest, DocumentSymbolRequest, DefinitionRequest, TextDocumentPositionParams,
-    TextDocumentIdentifier, SymbolInformation, Location, Position, DocumentSymbol, ReferenceParams
+    TextDocumentIdentifier, SymbolInformation, Location, Position, DocumentSymbol, ReferenceParams, LocationLink
 } from 'monaco-languageclient/lib/services';
 import * as utils from './utils';
 import { ILogger, Disposable } from '@theia/core';
@@ -59,7 +59,7 @@ export class CallHierarchyContext implements Disposable {
 
         // Definition can be null
         // tslint:disable-next-line:no-null-keyword
-        let locations: Location | Location[] | null = null;
+        let locations: Location | Location[] | LocationLink[] | null = null;
         try {
             locations = await this.languageClient.sendRequest(DefinitionRequest.type, <TextDocumentPositionParams>{
                 position: Position.create(line, character),
@@ -70,8 +70,15 @@ export class CallHierarchyContext implements Disposable {
         }
         if (!locations) {
             return undefined;
+        } else if (Array.isArray(locations)) {
+            for (const loc of locations) {
+                if (Location.is(loc)) {
+                    return loc;
+                }
+            }
+        } else {
+            return locations;
         }
-        return Array.isArray(locations) ? locations[0] : locations;
     }
 
     async getCallerReferences(definition: Location): Promise<Location[]> {
