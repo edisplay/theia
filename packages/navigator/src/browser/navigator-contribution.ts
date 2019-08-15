@@ -21,7 +21,7 @@ import {
     OpenerService, FrontendApplicationContribution, FrontendApplication, CompositeTreeNode
 } from '@theia/core/lib/browser';
 import { FileDownloadCommands } from '@theia/filesystem/lib/browser/download/file-download-command-contribution';
-import { CommandRegistry, MenuModelRegistry, MenuPath, isOSX, Command, DisposableCollection } from '@theia/core/lib/common';
+import { CommandRegistry, MenuModelRegistry, MenuPath, isOSX, Command, DisposableCollection, Mutable } from '@theia/core/lib/common';
 import { SHELL_TABBAR_CONTEXT_MENU } from '@theia/core/lib/browser';
 import { WorkspaceCommands, WorkspaceService, WorkspacePreferences } from '@theia/workspace/lib/browser';
 import { FILE_NAVIGATOR_ID, FileNavigatorWidget, EXPLORER_VIEW_CONTAINER_ID } from './navigator-widget';
@@ -30,7 +30,7 @@ import { NavigatorKeybindingContexts } from './navigator-keybinding-context';
 import { FileNavigatorFilter } from './navigator-filter';
 import { WorkspaceNode } from './navigator-tree';
 import { NavigatorContextKeyService } from './navigator-context-key-service';
-import { TabBarToolbarContribution, TabBarToolbarRegistry } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
+import { TabBarToolbarContribution, TabBarToolbarRegistry, TabBarToolbarItem } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { FileSystemCommands } from '@theia/filesystem/lib/browser/filesystem-frontend-contribution';
 import { NavigatorDiff, NavigatorDiffCommands } from './navigator-diff';
 import { UriSelection } from '@theia/core/lib/common/selection';
@@ -94,6 +94,9 @@ export namespace NavigatorContextMenu {
 
 @injectable()
 export class FileNavigatorContribution extends AbstractViewContribution<FileNavigatorWidget> implements FrontendApplicationContribution, TabBarToolbarContribution {
+
+    @inject(CommandRegistry)
+    protected readonly commandRegistry: CommandRegistry;
 
     @inject(NavigatorContextKeyService)
     protected readonly contextKeyService: NavigatorContextKeyService;
@@ -339,6 +342,41 @@ export class FileNavigatorContribution extends AbstractViewContribution<FileNavi
             command: FileNavigatorCommands.COLLAPSE_ALL.id,
             tooltip: 'Collapse All',
             priority: 1,
+        });
+
+        // Register 'more' toolbar item (consists of multiple commands)
+        const registerItem = (item: Mutable<TabBarToolbarItem>) => {
+            const commandId = item.command;
+            const id = '__git.tabbar.toolbar.' + commandId;
+            const command = this.commandRegistry.getCommand(commandId);
+            this.commandRegistry.registerCommand({ id, iconClass: command && command.iconClass }, {
+                execute: (widget, ...args) => widget instanceof FileNavigatorWidget
+                    && this.commandRegistry.executeCommand(commandId, ...args),
+                isEnabled: (widget, ...args) => widget instanceof FileNavigatorWidget
+                    && this.commandRegistry.isEnabled(commandId, ...args),
+                isVisible: (widget, ...args) => widget instanceof FileNavigatorWidget
+                    && this.commandRegistry.isVisible(commandId, ...args),
+            });
+            item.command = id;
+            toolbarRegistry.registerItem(item);
+        };
+        registerItem({
+            id: WorkspaceCommands.NEW_FILE.id,
+            command: WorkspaceCommands.NEW_FILE.id,
+            tooltip: WorkspaceCommands.NEW_FILE.label,
+            group: '1_new',
+        });
+        registerItem({
+            id: WorkspaceCommands.NEW_FOLDER.id,
+            command: WorkspaceCommands.NEW_FOLDER.id,
+            tooltip: WorkspaceCommands.NEW_FOLDER.label,
+            group: '1_new',
+        });
+        registerItem({
+            id: WorkspaceCommands.ADD_FOLDER.id,
+            command: WorkspaceCommands.ADD_FOLDER.id,
+            tooltip: WorkspaceCommands.ADD_FOLDER.label,
+            group: '2_add',
         });
     }
 

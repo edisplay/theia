@@ -447,6 +447,14 @@ export class WorkspaceRootUriAwareCommandHandler extends UriAwareCommandHandler<
         super(selectionService, handler);
     }
 
+    isEnabled(): boolean {
+        return true;
+    }
+
+    isVisible(): boolean {
+        return true;
+    }
+
     protected getUri(): URI | undefined {
         const uri = super.getUri();
         if (this.workspaceService.isMultiRootWorkspaceEnabled) {
